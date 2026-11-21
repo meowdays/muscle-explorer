@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#173f3b"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Muscle Explorer"><link rel="apple-touch-icon" href="assets/apple-touch-icon.png"><meta name="description" content="Interactive 3D human muscle explorer.">
+  <link rel="manifest" href="manifest.webmanifest"><link rel="icon" type="image/png" href="assets/favicon.png"><link rel="stylesheet" href="style.css">
+  <title>Muscle Explorer</title>
+</head>
+<body>
+<header><a class="brand" href="./"><img class="app-icon" src="assets/icon-192.png" alt=""><span>MUSCLE EXPLORER<small>3D ANATOMY</small></span></a><div class="header-note">互動人體肌肉圖譜</div></header>
+<main>
+  <section class="intro"><div class="eyebrow">人體解剖 · 3D 探索 · 肌肉辨識</div><h1>探索人體肌肉結構</h1><p>單指拖曳旋轉 · 雙指捏合縮放 · 點選肌肉查看名稱</p></section>
+  <section class="workspace">
+    <div class="viewer-panel">
+      <div class="panel-top"><span>3D 肌肉模型</span><span id="loadStatus" class="status">載入模型中…</span></div>
+      <div class="viewport"><canvas id="model" aria-label="Interactive 3D human muscle model"></canvas><div class="loading" id="loading">正在載入 3D 解剖模型…</div><div class="view-label" id="viewLabel">正面</div><button class="reset" id="reset" type="button" title="Reset view">↺</button><div class="gesture-hint">單指旋轉 · 雙指縮放</div></div>
+      <nav class="views" aria-label="Preset views"><button class="active" data-view="front">正面</button><button data-view="back">背面</button><button data-view="left">左側</button><button data-view="right">右側</button></nav>
+      <div class="layer"><label for="layer">解剖層次</label><select id="layer"><option value="all">所有肌肉</option><option value="hip">臀部深層 · 隱藏臀大肌</option><option value="hipdeep">更深層 · 同時隱藏臀中肌</option><option value="back">背部深層 · 隱藏斜方肌及背闊肌</option></select></div>
+    </div>
+    <aside class="info-panel">
+      <div class="panel-top"><span>肌肉檢視器</span><span id="count" class="status">—</span></div>
+      <label class="search-label" for="search">搜尋肌肉</label><input id="search" type="search" placeholder="例如 gluteus medius、TFL…" autocomplete="off">
+      <div id="searchResults" class="search-results"><p class="muted">可搜尋英文或常見肌肉名稱。</p></div>
+      <div class="selected" id="selected"><div class="selected-kicker">已選取結構</div><h2 id="muscleName">尚未選取肌肉</h2><p id="muscleSide">點選模型上的肌肉，或選擇搜尋結果。</p><div class="actions"><button id="focus" disabled>聚焦</button><button id="isolate" disabled>單獨顯示</button><button id="hide" disabled>隱藏</button></div></div>
+      <button id="restore" class="restore">顯示所有肌肉</button>
+      <div class="legend"><span></span> 已選取肌肉</div>
+      <p class="note">本工具僅供解剖結構參考；不同資料來源的肌肉分界及名稱可能略有差異，並非診斷工具。</p>
+    </aside>
+  </section>
+  <footer>模型來源及授權： <a href="CREDITS.md">credits</a>. 建議使用支援 WebGL 的新版手機或桌面瀏覽器。</footer>
+</main>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js"}}</script>
+<script type="module" src="anatomy.js"></script>
+<script>if('serviceWorker' in navigator && location.protocol.startsWith('http')) addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));</script>
+</body></html>
