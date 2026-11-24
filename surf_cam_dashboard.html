@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#101d28">
+<title>Surf Cams — Personal Dashboard</title>
+<style>
+:root{color-scheme:dark;--bg:#101d28;--panel:#192b38;--panel2:#243b4b;--muted:#9db2c0;--line:#304858;--accent:#9ed8d0}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:#f4f8fa;font:15px/1.45 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+header{max-width:1440px;margin:auto;padding:24px 22px 16px;display:flex;gap:16px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+h1{font-size:clamp(24px,4vw,34px);letter-spacing:.08em;margin:0}
+.sub{color:var(--muted);font-size:12px;letter-spacing:.12em;margin-top:3px}
+.actions{display:flex;gap:8px;flex-wrap:wrap}
+button,.tab{border:1px solid var(--line);background:var(--panel2);color:#f4f8fa;border-radius:9px;padding:10px 13px;font-weight:650;cursor:pointer}
+button:hover,.tab:hover{border-color:var(--accent)}
+button.primary{background:var(--accent);color:#10212b;border-color:var(--accent)}
+main{max-width:1440px;margin:auto;padding:0 22px 36px}
+.tabs{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0 18px}
+.tab[aria-pressed=true]{background:var(--accent);color:#10212b;border-color:var(--accent)}
+.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:13px;overflow:hidden;min-width:0}
+.frame{aspect-ratio:16/9;background:linear-gradient(135deg,#243d4d,#152733);display:flex;align-items:center;justify-content:center;position:relative}
+.frame iframe{width:100%;height:100%;border:0;background:#0b151d}
+.placeholder{text-align:center;padding:20px;color:var(--muted)}
+.placeholder strong{display:block;color:#eaf2f6;font-size:14px;margin-bottom:5px}
+.meta{padding:11px 12px;display:flex;align-items:center;justify-content:space-between;gap:8px}
+.name{font-weight:700}.region{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em}
+.card-controls{display:flex;gap:6px}
+.card-controls button{padding:6px 8px;font-size:12px}
+.settings{margin-top:22px;background:var(--panel);border:1px solid var(--line);border-radius:13px;padding:16px}
+.settings h2{font-size:17px;margin:0 0 6px}
+.help{color:var(--muted);font-size:13px;margin:0 0 14px}
+.camera-setting{display:grid;grid-template-columns:150px minmax(0,1fr) auto;gap:10px;align-items:center;padding:9px 0;border-top:1px solid var(--line)}
+.camera-setting label{font-weight:650}
+input{width:100%;min-width:0;background:#0e1a23;color:#f4f8fa;border:1px solid var(--line);border-radius:8px;padding:10px}
+.small{font-size:12px;color:var(--muted)}
+footer{max-width:1440px;margin:auto;padding:0 22px 28px;color:var(--muted);font-size:12px}
+.hidden{display:none!important}
+@media(max-width:900px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:560px){header{padding:18px 14px 12px}main{padding:0 14px 28px}.grid{grid-template-columns:1fr}.camera-setting{grid-template-columns:1fr;gap:6px}.actions button{padding:9px 10px}}
+</style>
+</head>
+<body>
+<header>
+  <div><h1>SURF CAMS</h1><div class="sub">PERSONAL SURF MONITOR · NORTH DEVON + SOUTH WALES</div></div>
+  <div class="actions">
+    <button class="primary" id="playAll">▶ Play all</button>
+    <button id="pauseAll">Ⅱ Pause all</button>
+    <button id="refreshAll">↻ Reload all</button>
+  </div>
+</header>
+<main>
+  <nav class="tabs" aria-label="Filter cameras">
+    <button class="tab" data-filter="all" aria-pressed="true">All cameras</button>
+    <button class="tab" data-filter="North Devon" aria-pressed="false">North Devon</button>
+    <button class="tab" data-filter="South Wales" aria-pressed="false">South Wales</button>
+  </nav>
+  <section class="grid" id="cameraGrid" aria-label="Surf webcams"></section>
+  <section class="settings">
+    <h2>Camera setup</h2>
+    <p class="help">Paste an embeddable player URL for each spot, then choose Save. A normal webpage URL may refuse to load inside a frame. This dashboard does not bypass logins, paywalls or site restrictions.</p>
+    <div id="settingsList"></div>
+    <div class="actions" style="margin-top:14px">
+      <button class="primary" id="saveSettings">Save camera URLs</button>
+      <button id="clearSettings">Clear saved URLs</button>
+    </div>
+    <p class="small" id="status" role="status" aria-live="polite" style="margin:12px 0 0">Three Surfline embeds preloaded for testing. The other three spots still need a verified Surfline embed URL.</p>
+  </section>
+</main>
+<footer>Autoplay is attempted muted where the source and browser allow it. Some providers require a manual play click or prohibit embedding. Playback is not guaranteed to be frame-synchronised across different sources.</footer>
+<script>
+const cameras = [
+  {id:"saunton",name:"Saunton Sands",region:"North Devon"},
+  {id:"croyde",name:"Croyde Bay",region:"North Devon"},
+  {id:"woolacombe",name:"Woolacombe",region:"North Devon"},
+  {id:"putsborough",name:"Putsborough",region:"North Devon"},
+  {id:"restbay",name:"Rest Bay",region:"South Wales"},
+  {id:"coney",name:"Coney Beach",region:"South Wales"}
+];
+const STORAGE_KEY="personal-surf-cams-v1";
+const defaultUrls = {
+  saunton: "https://embed.cdn-surfline.com/cams/5a21a981096c27001ac4f192/9824ce7243b500f3d8b23c23a770a0fac863606f",
+  croyde: "https://embed.cdn-surfline.com/cams/58a37429ea714bf7668bffff/e0667f01a78620cb0c2ee9daf849cdca1e1d9504",
+  woolacombe: "https://embed.cdn-surfline.com/cams/5834a1fb3421b20545c4b59f/cd70b590fdc67e425c750092f59191727ca30458"
+};
+let savedUrls={};
+try { savedUrls=JSON.parse(localStorage.getItem(STORAGE_KEY)||"{}"); } catch {}
+let urls={...defaultUrls,...savedUrls};
+let currentFilter="all";
+const grid=document.getElementById("cameraGrid");
+const settingsList=document.getElementById("settingsList");
+const statusEl=document.getElementById("status");
+
+function safeUrl(value){
+  try{const u=new URL(value);return ["https:","http:"].includes(u.protocol)?u.href:""}catch{return ""}
+}
+function render(){
+  grid.innerHTML="";
+  cameras.filter(c=>currentFilter==="all"||c.region===currentFilter).forEach(c=>{
+    const url=safeUrl(urls[c.id]||"");
+    const card=document.createElement("article");card.className="card";card.dataset.id=c.id;
+    const frame=document.createElement("div");frame.className="frame";
+    if(url){
+      const iframe=document.createElement("iframe");
+      iframe.src=url;iframe.title=c.name+" surf webcam";
+      iframe.allow="autoplay; fullscreen; picture-in-picture";
+      iframe.allowFullscreen=true;
+      iframe.loading="lazy";
+      frame.appendChild(iframe);
+    }else{
+      const placeholder=document.createElement("div");placeholder.className="placeholder";
+      placeholder.innerHTML="<strong>CAMERA NOT CONNECTED</strong><span>Add a supported embed URL below</span>";
+      frame.appendChild(placeholder);
+    }
+    const meta=document.createElement("div");meta.className="meta";
+    const labels=document.createElement("div");
+    labels.innerHTML=`<div class="name">${c.name}</div><div class="region">${c.region}</div>`;
+    const controls=document.createElement("div");controls.className="card-controls";
+    const reload=document.createElement("button");reload.textContent="↻";reload.title="Reload camera";
+    reload.addEventListener("click",()=>{const f=frame.querySelector("iframe");if(f){const src=f.src;f.src="about:blank";f.src=src;}});
+    const full=document.createElement("button");full.textContent="⛶";full.title="Fullscreen";
+    full.addEventListener("click",()=>{if(frame.requestFullscreen)frame.requestFullscreen();});
+    controls.append(reload,full);meta.append(labels,controls);card.append(frame,meta);grid.append(card);
+  });
+}
+function renderSettings(){
+  settingsList.innerHTML="";
+  cameras.forEach(c=>{
+    const row=document.createElement("div");row.className="camera-setting";
+    const label=document.createElement("label");label.htmlFor="url-"+c.id;label.textContent=c.name;
+    const input=document.createElement("input");input.id="url-"+c.id;input.type="url";input.placeholder="https://… (embed/player URL)";input.value=urls[c.id]||"";
+    const region=document.createElement("span");region.className="small";region.textContent=c.region;
+    row.append(label,input,region);settingsList.append(row);
+  });
+}
+function reloadAll(){document.querySelectorAll(".frame iframe").forEach(f=>{const s=f.src;f.src="about:blank";f.src=s;});}
+document.getElementById("saveSettings").addEventListener("click",()=>{
+  const next={};cameras.forEach(c=>{const v=document.getElementById("url-"+c.id).value.trim();if(v)next[c.id]=v;});
+  urls=next;localStorage.setItem(STORAGE_KEY,JSON.stringify(urls));render();statusEl.textContent="Saved in this browser. Surfline may block external embedding or require permission/login.";
+});
+document.getElementById("clearSettings").addEventListener("click",()=>{
+  urls={};localStorage.removeItem(STORAGE_KEY);renderSettings();render();statusEl.textContent="Saved camera URLs cleared from this browser.";
+});
+document.getElementById("playAll").addEventListener("click",()=>{
+  // Cross-origin iframes cannot be controlled generically; reload attempts a fresh player load.
+  reloadAll();statusEl.textContent="Reload requested for all configured players. Cross-origin player controls and autoplay depend on Surfline/browser support.";
+});
+document.getElementById("pauseAll").addEventListener("click",()=>{
+  // Generic pause is not available for arbitrary third-party iframe players.
+  statusEl.textContent="Pause all is provider-dependent. Use each player's own pause control where available.";
+});
+document.getElementById("refreshAll").addEventListener("click",reloadAll);
+document.querySelectorAll(".tab").forEach(btn=>btn.addEventListener("click",()=>{
+  currentFilter=btn.dataset.filter;
+  document.querySelectorAll(".tab").forEach(b=>b.setAttribute("aria-pressed",String(b===btn)));
+  render();
+}));
+renderSettings();render();
+</script>
+</body>
+</html>
